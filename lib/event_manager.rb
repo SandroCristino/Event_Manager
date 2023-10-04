@@ -1,6 +1,7 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -45,6 +46,44 @@ def sort_phone(phone)
     end
 end
 
+def find_peak_registration(regdate)
+
+  # Seperate input
+  date, time = regdate.split(' ')
+
+  # Calculate weekday
+  d = Date.strptime(date, '%m/%d/%y')
+  weekday = d.strftime('%A')
+
+  # Calculate hours
+  t = Time.strptime(time, '%H:%M')
+  hour = t.hour
+
+  # Return date and time
+  return weekday, hour
+
+end
+
+def calculate_peak(weekday, hour, registration_weekday, registration_hours)
+
+  # Store the values in the respective hashes
+  registration_weekday[weekday] += 1
+  registration_hours[hour] += 1
+end
+
+def print_peak(registration_hours, registration_weekday)
+
+  # Get highest weekday
+  highest_weekday = registration_weekday.max_by {|_,count| count}[0]
+
+  # Get highest hour
+  highest_hour = registration_hours.max_by { |_,count | count}[0]
+
+  # Print
+  puts "Highest weekday: #{highest_weekday}"
+  puts "Highest hour:  #{highest_hour}:00 o'clock"
+end
+
 puts 'EventManager initialized.'
 
 contents = CSV.open(
@@ -56,6 +95,9 @@ contents = CSV.open(
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
+# Create Hash from date and time to get peak
+registration_weekday = Hash.new(0)
+registration_hours = Hash.new(0)
 
 contents.each do |row|
     id = row[0]
@@ -72,5 +114,13 @@ contents.each do |row|
   # Create output
   save_thank_you_letter(id, form_letter)
 
+  # Calcualte day and hour
+  weekday, hour = find_peak_registration(row[:regdate])
+
+  # Calculate peak
+  calculate_peak(weekday, hour, registration_weekday, registration_hours)
+
 end
+
+print_peak(registration_hours,registration_weekday)
 
