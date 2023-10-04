@@ -15,39 +15,38 @@ def legislators_by_zipcode(zip)
     civic_info.representative_info_by_address(
       address: zip,
       levels: 'country',
-      roles: ['legislatorUpperBody', 'legislatorLowerBody']
+      roles: %w[legislatorUpperBody legislatorLowerBody]
     ).officials
-  rescue
+  rescue StandardError
     'You can find your representatives by visiting www.commoncause.org/take-action/find-elected-officials'
   end
 end
 
 def save_thank_you_letter(id, form_letter)
-    Dir.mkdir('output') unless Dir.exist?('output')
+  Dir.mkdir('output') unless Dir.exist?('output')
 
-    filename = "output/thanks_#{id}.html"
+  filename = "output/thanks_#{id}.html"
 
-    File.open(filename, 'w') do |file|
-        file.puts form_letter
-    end
+  File.open(filename, 'w') do |file|
+    file.puts form_letter
+  end
 end
 
 def sort_phone(phone)
-    phone_length = phone.to_s.length
+  phone_length = phone.to_s.length
 
-    if phone_length < 10 || phone_length > 11
-        return 
-    elsif phone.to_s[0].to_i != 1 && phone_length == 11
-        return
-    elsif phone.to_s[0].to_i == 1 && phone_length == 11
-        return phone.to_s[1..10].to_i
-    else
-        return phone
-    end
+  if phone_length < 10 || phone_length > 11
+    nil
+  elsif phone.to_s[0].to_i != 1 && phone_length == 11
+    nil
+  elsif phone.to_s[0].to_i == 1 && phone_length == 11
+    phone.to_s[1..10].to_i
+  else
+    phone
+  end
 end
 
 def find_peak_registration(regdate)
-
   # Seperate input
   date, time = regdate.split(' ')
 
@@ -60,24 +59,21 @@ def find_peak_registration(regdate)
   hour = t.hour
 
   # Return date and time
-  return weekday, hour
-
+  [weekday, hour]
 end
 
 def calculate_peak(weekday, hour, registration_weekday, registration_hours)
-
   # Store the values in the respective hashes
   registration_weekday[weekday] += 1
   registration_hours[hour] += 1
 end
 
 def print_peak(registration_hours, registration_weekday)
-
   # Get highest weekday
-  highest_weekday = registration_weekday.max_by {|_,count| count}[0]
+  highest_weekday = registration_weekday.max_by { |_, count| count }[0]
 
   # Get highest hour
-  highest_hour = registration_hours.max_by { |_,count | count}[0]
+  highest_hour = registration_hours.max_by { |_, count| count }[0]
 
   # Print
   puts "Highest weekday: #{highest_weekday}"
@@ -100,7 +96,7 @@ registration_weekday = Hash.new(0)
 registration_hours = Hash.new(0)
 
 contents.each do |row|
-    id = row[0]
+  id = row[0]
   name = row[:first_name]
 
   zipcode = clean_zipcode(row[:zipcode])
@@ -119,8 +115,6 @@ contents.each do |row|
 
   # Calculate peak
   calculate_peak(weekday, hour, registration_weekday, registration_hours)
-
 end
 
-print_peak(registration_hours,registration_weekday)
-
+print_peak(registration_hours, registration_weekday)
